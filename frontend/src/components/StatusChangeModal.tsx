@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Check, LoaderCircle, X } from 'lucide-react'
 import type { Application, ApplicationStatus } from '../services/applicationService'
 import StatusBadge from './StatusBadge'
@@ -10,6 +10,14 @@ export default function StatusChangeModal({ application, onClose, onSubmit }: { 
   const [note, setNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
 
   const submit = async () => {
     setIsSubmitting(true); setError('')

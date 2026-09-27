@@ -46,6 +46,14 @@ export default function ApplicationModal({ application, onClose, onSubmit }: Pro
     })
   }, [application, reset])
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   const submit = async (values: FormValues) => {
     setSubmitError('')
     try { await onSubmit(values) } catch { setSubmitError('Không thể lưu đơn ứng tuyển. Vui lòng thử lại.') }

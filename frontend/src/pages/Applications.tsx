@@ -219,9 +219,9 @@ export default function Applications() {
                   <div className="company-cell">
                     <span className="company-logo">{application.companyName[0].toUpperCase()}</span>
                     <div>
-                      <strong>{application.companyName}</strong>
-                      <span>{application.jobTitle}</span>
-                      {application.location && <small>{application.location}</small>}
+                      <strong title={application.companyName}>{application.companyName}</strong>
+                      <span title={application.jobTitle}>{application.jobTitle}</span>
+                      {application.location && <small title={application.location}>{application.location}</small>}
                     </div>
                   </div>
                   <div><StatusBadge status={application.status} /></div>
