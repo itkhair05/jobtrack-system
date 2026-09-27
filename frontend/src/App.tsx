@@ -7,6 +7,7 @@ const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Settings = lazy(() => import('./pages/Settings'))
 const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'))
+const Cvs = lazy(() => import('./pages/Cvs'))
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/applications/:id" element={<ApplicationDetail />} />
+          <Route path="/cvs" element={<Cvs />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

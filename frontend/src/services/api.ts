@@ -15,4 +15,18 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status
+    const path = window.location.pathname
+    if ((status === 401 || status === 403) && !path.startsWith('/login') && !path.startsWith('/register')) {
+      localStorage.removeItem('jobtrack_token')
+      localStorage.removeItem('jobtrack_user')
+      window.location.assign('/login')
+    }
+    return Promise.reject(error)
+  },
+)
+
 export default api

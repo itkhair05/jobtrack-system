@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, BriefcaseBusiness, CalendarDays, Clock3, ExternalLink, FileText, LoaderCircle, MapPin, RefreshCw } from 'lucide-react'
+import { ArrowLeft, BriefcaseBusiness, CalendarDays, Clock3, Download, Eye, FileText, LoaderCircle, MapPin, RefreshCw } from 'lucide-react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import StatusBadge from '../components/StatusBadge'
 import StatusChangeModal from '../components/StatusChangeModal'
 import { getApplication, updateStatus, type Application, type ApplicationDetail as ApplicationDetailData, type ApplicationStatus } from '../services/applicationService'
 import { getErrorMessage } from '../utils/errorMessage'
+import { downloadCv, viewCv } from '../services/cvService'
 
 const statusLabels: Record<ApplicationStatus, string> = { SAVED: 'Đã lưu', APPLIED: 'Đã ứng tuyển', INTERVIEWING: 'Phỏng vấn', OFFERED: 'Đã nhận offer', REJECTED: 'Từ chối' }
 
@@ -17,6 +18,7 @@ export default function ApplicationDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [changingStatus, setChangingStatus] = useState<Application | null>(null)
+  const [cvError, setCvError] = useState('')
 
   useEffect(() => {
     if (!id || !user) return
@@ -39,6 +41,12 @@ export default function ApplicationDetail() {
   const reload = async () => setDetail(await getApplication(application.id))
   const handleStatus = async (status: ApplicationStatus, note: string) => { await updateStatus(application.id, { status, note }); setChangingStatus(null); await reload() }
   const followUpState = getFollowUpState(application.followUpDate)
+  const handleCvAction = async (action: 'view' | 'download') => {
+    if (!application.cvId) return
+    setCvError('')
+    try { if (action === 'view') await viewCv(application.cvId); else await downloadCv(application.cvId, application.cvTitle || 'cv.pdf') }
+    catch (requestError) { setCvError(getErrorMessage(requestError, 'Không thể mở CV.')) }
+  }
 
   return <main className="detail-shell">
     <header className="detail-topbar"><button className="back-button" type="button" onClick={() => navigate('/')}><ArrowLeft size={18} /> Dashboard</button><span className="dashboard-brand"><span className="brand-mark"><BriefcaseBusiness size={18} /></span> JobTrack</span><button className="icon-button" type="button" onClick={() => void reload()} aria-label="Tải lại"><RefreshCw size={17} /></button></header>
@@ -48,7 +56,7 @@ export default function ApplicationDetail() {
         <section className="detail-main">
           <div className="detail-card"><div className="detail-card-title"><CalendarDays size={17} /> Tổng quan</div><div className="detail-facts"><Fact label="Ngày ứng tuyển" value={formatDate(application.appliedDate) || 'Chưa cập nhật'} /><Fact label="Follow-up" value={formatDate(application.followUpDate) || 'Chưa đặt'} tone={followUpState.tone}>{followUpState.label}</Fact><Fact label="Mức lương" value={application.salaryRange || 'Chưa cập nhật'} /></div></div>
           <div className="detail-card"><div className="detail-card-title"><FileText size={17} /> Ghi chú</div><p className="detail-notes">{application.notes || 'Chưa có ghi chú cho đơn ứng tuyển này.'}</p></div>
-          {application.cvId && <div className="detail-card cv-detail"><div className="detail-card-title"><FileText size={17} /> CV đã sử dụng</div><div><strong>{application.cvTitle || 'CV đính kèm'}</strong><a href={`http://localhost:8080/api/v1/cvs/${application.cvId}/download`} target="_blank" rel="noreferrer">Xem CV <ExternalLink size={14} /></a></div></div>}
+          {application.cvId && <div className="detail-card cv-detail"><div className="detail-card-title"><FileText size={17} /> CV đã sử dụng</div><div><strong>{application.cvTitle || 'CV đính kèm'}</strong><span className="cv-detail-actions"><button type="button" onClick={() => void handleCvAction('view')}><Eye size={14} /> Xem</button><button type="button" onClick={() => void handleCvAction('download')}><Download size={14} /> Tải xuống</button></span></div>{cvError && <small className="cv-upload-error">{cvError}</small>}</div>}
         </section>
         <aside className="timeline-card"><div className="detail-card-title"><Clock3 size={17} /> Lịch sử trạng thái</div><div className="timeline">{detail.timeline.map((item) => <div className="timeline-item" key={item.id}><span className="timeline-dot" /><div><div className="timeline-meta"><strong>{statusLabels[item.toStatus]}</strong><time>{new Date(item.changedAt).toLocaleString('vi-VN')}</time></div>{item.note && <p>{item.note}</p>}</div></div>)}</div></aside>
       </div>
