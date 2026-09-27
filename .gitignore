@@ -3,6 +3,7 @@ node_modules/
 dist/
 .DS_Store
 
+
 # Java / Maven / Backend
 backend/target/
 .idea/
@@ -11,3 +12,19 @@ backend/target/
 
 # Environment Variables
 .env
+
+# UI Pro Max - AI Configs (Keep .github for Copilot)
+.claude/
+.cursor/
+.windsurf/
+.agent/
+.kiro/
+.opencode/
+.roo/
+.codex/
+.qoder/
+.gemini/
+.trae/
+.continue/
+.codebuddy/
+.github/
