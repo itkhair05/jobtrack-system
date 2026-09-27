@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { BriefcaseBusiness, CalendarDays, Link2, LoaderCircle, MapPin, X } from 'lucide-react'
 import { z } from 'zod'
+import CvUploader from './CvUploader'
 import type { Application, ApplicationRequest } from '../services/applicationService'
 
 const applicationSchema = z.object({
@@ -15,6 +16,8 @@ const applicationSchema = z.object({
   status: z.enum(['SAVED', 'APPLIED', 'INTERVIEWING', 'OFFERED', 'REJECTED']),
   appliedDate: z.string().optional(),
   notes: z.string().trim().max(2000, 'Tối đa 2000 ký tự').optional().or(z.literal('')),
+  cvId: z.number().nullable().optional(),
+  cvTitle: z.string().nullable().optional(),
 })
 
 type FormValues = z.infer<typeof applicationSchema>
@@ -27,9 +30,9 @@ type Props = {
 
 export default function ApplicationModal({ application, onClose, onSubmit }: Props) {
   const [submitError, setSubmitError] = useState('')
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, control, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(applicationSchema),
-    defaultValues: { status: 'SAVED' },
+    defaultValues: { status: 'SAVED', cvId: null, cvTitle: null },
   })
 
   useEffect(() => {
@@ -37,6 +40,7 @@ export default function ApplicationModal({ application, onClose, onSubmit }: Pro
       companyName: application?.companyName ?? '', website: application?.website ?? '', location: application?.location ?? '',
       jobTitle: application?.jobTitle ?? '', jobUrl: application?.jobUrl ?? '', salaryRange: application?.salaryRange ?? '',
       status: application?.status ?? 'SAVED', appliedDate: application?.appliedDate ?? '', notes: application?.notes ?? '',
+      cvId: application?.cvId ?? null, cvTitle: application?.cvTitle ?? null,
     })
   }, [application, reset])
 
@@ -44,6 +48,9 @@ export default function ApplicationModal({ application, onClose, onSubmit }: Pro
     setSubmitError('')
     try { await onSubmit(values) } catch { setSubmitError('Không thể lưu đơn ứng tuyển. Vui lòng thử lại.') }
   }
+
+  const selectedCvId = useWatch({ control, name: 'cvId' }) ?? null
+  const selectedCvTitle = useWatch({ control, name: 'cvTitle' }) ?? null
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
@@ -57,6 +64,7 @@ export default function ApplicationModal({ application, onClose, onSubmit }: Pro
           <div className="form-two-col"><Field label="Link tuyển dụng" error={errors.jobUrl?.message}><div className="field-with-icon"><Link2 size={16} /><input placeholder="https://..." {...register('jobUrl')} /></div></Field><Field label="Mức lương" error={errors.salaryRange?.message}><input placeholder="20 - 30 triệu" {...register('salaryRange')} /></Field></div>
           <div className="form-two-col"><Field label="Trạng thái" error={errors.status?.message}><select {...register('status')}><option value="SAVED">Đã lưu</option><option value="APPLIED">Đã ứng tuyển</option><option value="INTERVIEWING">Phỏng vấn</option><option value="OFFERED">Đã nhận offer</option><option value="REJECTED">Từ chối</option></select></Field><Field label="Ngày ứng tuyển" error={errors.appliedDate?.message}><div className="field-with-icon"><CalendarDays size={16} /><input type="date" {...register('appliedDate')} /></div></Field></div>
           <Field label="Ghi chú" error={errors.notes?.message}><textarea rows={3} placeholder="Thêm ghi chú cho đơn ứng tuyển..." {...register('notes')} /></Field>
+          <CvUploader cvId={selectedCvId} cvTitle={selectedCvTitle} onUploaded={(cv) => { setValue('cvId', cv?.id ?? null, { shouldDirty: true }); setValue('cvTitle', cv?.title ?? null, { shouldDirty: true }) }} />
           <footer className="modal-actions"><button className="secondary-button" type="button" onClick={onClose}>Hủy</button><button className="primary-button" type="submit" disabled={isSubmitting}>{isSubmitting ? <LoaderCircle className="spin" size={17} /> : application ? 'Lưu thay đổi' : 'Thêm đơn ứng tuyển'}</button></footer>
         </form>
       </section>

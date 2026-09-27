@@ -6,6 +6,7 @@ dist/
 
 # Java / Maven / Backend
 backend/target/
+backend/uploads/cvs/
 .idea/
 *.iml
 .vscode/

@@ -46,6 +46,14 @@ export interface ApplicationPage {
   size: number
 }
 
+export interface Cv {
+  id: number
+  title: string
+  fileName: string
+  downloadUrl: string
+  createdAt: string
+}
+
 export interface ApplicationFilters {
   page?: number
   size?: number
@@ -75,4 +83,14 @@ export async function updateStatus(id: number, payload: StatusUpdateRequest) {
 
 export async function deleteApplication(id: number) {
   await api.delete(`/applications/${id}`)
+}
+
+export async function uploadCv(file: File, title?: string) {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (title?.trim()) formData.append('title', title.trim())
+  const { data } = await api.post<Cv>('/cvs/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
 }
