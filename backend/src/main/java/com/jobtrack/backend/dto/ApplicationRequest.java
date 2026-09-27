@@ -15,5 +15,6 @@ public record ApplicationRequest(
         @Size(max = 100) String salaryRange,
         ApplicationStatus status,
         LocalDate appliedDate,
-        String notes) {
+        String notes,
+        LocalDate followUpDate) {
 }

@@ -19,5 +19,6 @@ public record ApplicationResponse(
         LocalDate appliedDate,
         String notes,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        LocalDate followUpDate) {
 }

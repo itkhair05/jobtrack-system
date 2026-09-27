@@ -16,6 +16,7 @@ const applicationSchema = z.object({
   status: z.enum(['SAVED', 'APPLIED', 'INTERVIEWING', 'OFFERED', 'REJECTED']),
   appliedDate: z.string().optional(),
   notes: z.string().trim().max(2000, 'Tối đa 2000 ký tự').optional().or(z.literal('')),
+  followUpDate: z.string().optional(),
   cvId: z.number().nullable().optional(),
   cvTitle: z.string().nullable().optional(),
 })
@@ -40,6 +41,7 @@ export default function ApplicationModal({ application, onClose, onSubmit }: Pro
       companyName: application?.companyName ?? '', website: application?.website ?? '', location: application?.location ?? '',
       jobTitle: application?.jobTitle ?? '', jobUrl: application?.jobUrl ?? '', salaryRange: application?.salaryRange ?? '',
       status: application?.status ?? 'SAVED', appliedDate: application?.appliedDate ?? '', notes: application?.notes ?? '',
+      followUpDate: application?.followUpDate ?? '',
       cvId: application?.cvId ?? null, cvTitle: application?.cvTitle ?? null,
     })
   }, [application, reset])
@@ -64,6 +66,7 @@ export default function ApplicationModal({ application, onClose, onSubmit }: Pro
           <div className="form-two-col"><Field label="Link tuyển dụng" error={errors.jobUrl?.message}><div className="field-with-icon"><Link2 size={16} /><input placeholder="https://..." {...register('jobUrl')} /></div></Field><Field label="Mức lương" error={errors.salaryRange?.message}><input placeholder="20 - 30 triệu" {...register('salaryRange')} /></Field></div>
           <div className="form-two-col"><Field label="Trạng thái" error={errors.status?.message}><select {...register('status')}><option value="SAVED">Đã lưu</option><option value="APPLIED">Đã ứng tuyển</option><option value="INTERVIEWING">Phỏng vấn</option><option value="OFFERED">Đã nhận offer</option><option value="REJECTED">Từ chối</option></select></Field><Field label="Ngày ứng tuyển" error={errors.appliedDate?.message}><div className="field-with-icon"><CalendarDays size={16} /><input type="date" {...register('appliedDate')} /></div></Field></div>
           <Field label="Ghi chú" error={errors.notes?.message}><textarea rows={3} placeholder="Thêm ghi chú cho đơn ứng tuyển..." {...register('notes')} /></Field>
+          <Field label="Ngày follow-up" error={errors.followUpDate?.message}><div className="field-with-icon"><CalendarDays size={16} /><input type="date" {...register('followUpDate')} /></div></Field>
           <CvUploader cvId={selectedCvId} cvTitle={selectedCvTitle} onUploaded={(cv) => { setValue('cvId', cv?.id ?? null, { shouldDirty: true }); setValue('cvTitle', cv?.title ?? null, { shouldDirty: true }) }} />
           <footer className="modal-actions"><button className="secondary-button" type="button" onClick={onClose}>Hủy</button><button className="primary-button" type="submit" disabled={isSubmitting}>{isSubmitting ? <LoaderCircle className="spin" size={17} /> : application ? 'Lưu thay đổi' : 'Thêm đơn ứng tuyển'}</button></footer>
         </form>

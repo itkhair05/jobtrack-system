@@ -1,7 +1,9 @@
 package com.jobtrack.backend.service;
 
 import com.jobtrack.backend.dto.ApplicationRequest;
+import com.jobtrack.backend.dto.ApplicationDetailResponse;
 import com.jobtrack.backend.dto.ApplicationResponse;
+import com.jobtrack.backend.dto.StatusLogResponse;
 import com.jobtrack.backend.dto.StatusUpdateRequest;
 import com.jobtrack.backend.entity.Application;
 import com.jobtrack.backend.entity.ApplicationStatus;
@@ -62,7 +64,9 @@ public class ApplicationService {
         Application application = new Application();
         application.setUser(user);
         applyRequest(application, user, request);
-        return toResponse(applicationRepository.save(application));
+        Application saved = applicationRepository.save(application);
+        saveStatusLog(saved, null, saved.getStatus().name(), "Đơn ứng tuyển được tạo");
+        return toResponse(saved);
     }
 
     @Transactional
@@ -73,6 +77,19 @@ public class ApplicationService {
         return toResponse(application);
     }
 
+        @Transactional(readOnly = true)
+        public ApplicationDetailResponse findDetail(String email, Long id) {
+        User user = findUser(email);
+        Application application = findApplication(id, user.getId());
+        return new ApplicationDetailResponse(
+            toResponse(application),
+            statusLogRepository.findByApplication_IdOrderByChangedAtDesc(application.getId())
+                .stream()
+                .map(log -> new StatusLogResponse(
+                    log.getId(), log.getFromStatus(), log.getToStatus(), log.getNote(), log.getChangedAt()))
+                .toList());
+        }
+
     @Transactional
     public ApplicationResponse updateStatus(String email, Long id, StatusUpdateRequest request) {
         User user = findUser(email);
@@ -80,12 +97,7 @@ public class ApplicationService {
         ApplicationStatus previousStatus = application.getStatus();
 
         if (previousStatus != request.status()) {
-            ApplicationStatusLog log = new ApplicationStatusLog();
-            log.setApplication(application);
-            log.setFromStatus(previousStatus == null ? null : previousStatus.name());
-            log.setToStatus(request.status().name());
-            log.setNote(request.note());
-            statusLogRepository.save(log);
+            saveStatusLog(application, previousStatus == null ? null : previousStatus.name(), request.status().name(), request.note());
             application.setStatus(request.status());
         }
 
@@ -119,7 +131,17 @@ public class ApplicationService {
         application.setSalaryRange(trimToNull(request.salaryRange()));
         application.setStatus(request.status() == null ? ApplicationStatus.SAVED : request.status());
         application.setAppliedDate(request.appliedDate());
+        application.setFollowUpDate(request.followUpDate());
         application.setNotes(trimToNull(request.notes()));
+    }
+
+    private void saveStatusLog(Application application, String fromStatus, String toStatus, String note) {
+        ApplicationStatusLog log = new ApplicationStatusLog();
+        log.setApplication(application);
+        log.setFromStatus(fromStatus);
+        log.setToStatus(toStatus);
+        log.setNote(note);
+        statusLogRepository.save(log);
     }
 
     private User findUser(String email) {
@@ -150,7 +172,8 @@ public class ApplicationService {
                 application.getAppliedDate(),
                 application.getNotes(),
                 application.getCreatedAt(),
-                application.getUpdatedAt());
+                application.getUpdatedAt(),
+                application.getFollowUpDate());
     }
 
     private String trimToNull(String value) {

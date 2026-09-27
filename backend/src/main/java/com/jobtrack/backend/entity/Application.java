@@ -52,6 +52,9 @@ public class Application {
     @Column(name = "applied_date")
     private LocalDate appliedDate;
 
+    @Column(name = "follow_up_date")
+    private LocalDate followUpDate;
+
     @Column(columnDefinition = "TEXT")
     private String notes;
 
@@ -90,6 +93,8 @@ public class Application {
     public void setStatus(ApplicationStatus status) { this.status = status; }
     public LocalDate getAppliedDate() { return appliedDate; }
     public void setAppliedDate(LocalDate appliedDate) { this.appliedDate = appliedDate; }
+    public LocalDate getFollowUpDate() { return followUpDate; }
+    public void setFollowUpDate(LocalDate followUpDate) { this.followUpDate = followUpDate; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
     public LocalDateTime getCreatedAt() { return createdAt; }

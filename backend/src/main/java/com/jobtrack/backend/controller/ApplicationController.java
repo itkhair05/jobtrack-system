@@ -1,6 +1,7 @@
 package com.jobtrack.backend.controller;
 
 import com.jobtrack.backend.dto.ApplicationRequest;
+import com.jobtrack.backend.dto.ApplicationDetailResponse;
 import com.jobtrack.backend.dto.ApplicationResponse;
 import com.jobtrack.backend.dto.StatusUpdateRequest;
 import com.jobtrack.backend.entity.ApplicationStatus;
@@ -45,6 +46,13 @@ public class ApplicationController {
         int safeSize = Math.min(Math.max(size, 1), 100);
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
         return applicationService.findAll(email, status, search, pageable);
+    }
+
+    @GetMapping("/{id}")
+    public ApplicationDetailResponse getApplication(
+            @AuthenticationPrincipal String email,
+            @PathVariable Long id) {
+        return applicationService.findDetail(email, id);
     }
 
     @PostMapping

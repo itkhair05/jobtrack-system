@@ -18,6 +18,7 @@ export interface Application {
   notes: string | null
   createdAt: string
   updatedAt: string
+  followUpDate: string | null
 }
 
 export interface ApplicationRequest {
@@ -31,6 +32,7 @@ export interface ApplicationRequest {
   status?: ApplicationStatus
   appliedDate?: string
   notes?: string
+  followUpDate?: string
 }
 
 export interface StatusUpdateRequest {
@@ -54,6 +56,19 @@ export interface Cv {
   createdAt: string
 }
 
+export interface StatusLog {
+  id: number
+  fromStatus: ApplicationStatus | null
+  toStatus: ApplicationStatus
+  note: string | null
+  changedAt: string
+}
+
+export interface ApplicationDetail {
+  application: Application
+  timeline: StatusLog[]
+}
+
 export interface ApplicationFilters {
   page?: number
   size?: number
@@ -63,6 +78,11 @@ export interface ApplicationFilters {
 
 export async function getApplications(filters: ApplicationFilters = {}) {
   const { data } = await api.get<ApplicationPage>('/applications', { params: filters })
+  return data
+}
+
+export async function getApplication(id: number) {
+  const { data } = await api.get<ApplicationDetail>(`/applications/${id}`)
   return data
 }
 

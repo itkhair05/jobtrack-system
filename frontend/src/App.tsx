@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Settings from './pages/Settings'
+import ApplicationDetail from './pages/ApplicationDetail'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="/applications/:id" element={<ApplicationDetail />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
