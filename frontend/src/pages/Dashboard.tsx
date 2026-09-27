@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BriefcaseBusiness, ChevronLeft, ChevronRight, ClipboardList, Download, Edit3, FileSpreadsheet, FileText, KanbanSquare, LogOut, MoreHorizontal, Plus, RefreshCw, Search, Settings as SettingsIcon, SlidersHorizontal, Table2, Trash2 } from 'lucide-react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ApplicationModal from '../components/ApplicationModal'
 import StatusBadge from '../components/StatusBadge'
@@ -26,6 +26,8 @@ const statItems: Array<{ value: ApplicationStatus; label: string; className: str
 export default function Dashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const urlSearch = new URLSearchParams(location.search).get('search') ?? ''
   const [applications, setApplications] = useState<Application[]>([])
   const [stats, setStats] = useState<Record<ApplicationStatus, number>>({ SAVED: 0, APPLIED: 0, INTERVIEWING: 0, OFFERED: 0, REJECTED: 0 })
   const [total, setTotal] = useState(0)
@@ -51,6 +53,10 @@ export default function Dashboard() {
     const timer = window.setTimeout(() => { setSearch(searchInput.trim()); setPage(0) }, 280)
     return () => window.clearTimeout(timer)
   }, [searchInput])
+  useEffect(() => {
+    const timer = window.setTimeout(() => { setSearchInput(urlSearch); setSearch(urlSearch); setPage(0) }, 0)
+    return () => window.clearTimeout(timer)
+  }, [urlSearch])
 
   useEffect(() => {
     if (!user) return
