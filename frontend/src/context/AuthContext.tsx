@@ -12,6 +12,8 @@ type AuthContextValue = {
   login: (payload: LoginPayload) => Promise<AuthResponse>
   register: (payload: RegisterPayload) => Promise<AuthResponse>
   logout: () => void
+  updateUser: (user: User) => void
+  updateSession: (response: AuthResponse) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -50,6 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null)
       setUser(null)
     },
+    updateUser: (updatedUser) => {
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
+      setUser(updatedUser)
+    },
+    updateSession: (response) => saveAuth(response),
   }), [token, user])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

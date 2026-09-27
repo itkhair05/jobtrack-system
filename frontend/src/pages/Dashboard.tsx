@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, BriefcaseBusiness, ChevronLeft, ChevronRight, ClipboardList, Edit3, KanbanSquare, LoaderCircle, LogOut, MoreHorizontal, Plus, RefreshCw, Search, SlidersHorizontal, Table2, Trash2 } from 'lucide-react'
+import { AlertCircle, BriefcaseBusiness, ChevronLeft, ChevronRight, ClipboardList, Download, Edit3, FileSpreadsheet, KanbanSquare, LoaderCircle, LogOut, MoreHorizontal, Plus, RefreshCw, Search, Settings as SettingsIcon, SlidersHorizontal, Table2, Trash2 } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ApplicationModal from '../components/ApplicationModal'
@@ -8,6 +8,8 @@ import StatusChangeModal from '../components/StatusChangeModal'
 import KanbanBoard from '../components/KanbanBoard'
 import { createApplication, deleteApplication, getApplications, updateApplication, updateStatus, type Application, type ApplicationRequest, type ApplicationStatus } from '../services/applicationService'
 import { getErrorMessage } from '../utils/errorMessage'
+import AnalyticsOverview from '../components/AnalyticsOverview'
+import { exportApplications } from '../services/exportService'
 
 const statuses: Array<{ value: ApplicationStatus | ''; label: string }> = [
   { value: '', label: 'Tất cả trạng thái' }, { value: 'SAVED', label: 'Đã lưu' }, { value: 'APPLIED', label: 'Đã ứng tuyển' },
@@ -34,6 +36,8 @@ export default function Dashboard() {
   const [notice, setNotice] = useState('')
   const [reloadKey, setReloadKey] = useState(0)
   const [view, setView] = useState<'table' | 'board'>('table')
+  const [analyticsVisible, setAnalyticsVisible] = useState(true)
+  const [isExporting, setIsExporting] = useState(false)
   const [editing, setEditing] = useState<Application | null | undefined>(undefined)
   const [changingStatus, setChangingStatus] = useState<Application | null>(null)
 
@@ -85,15 +89,23 @@ export default function Dashboard() {
     try { await updateStatus(application.id, { status: nextStatus }); setNotice('Đã chuyển đơn sang trạng thái mới.'); refresh() }
     catch (requestError) { setError(getErrorMessage(requestError, 'Không thể đổi trạng thái.')) }
   }
+  const handleExport = async (format: 'csv' | 'xlsx') => {
+    setIsExporting(true); setError('')
+    try { await exportApplications(format); setNotice(`Đã xuất file ${format.toUpperCase()}.`) }
+    catch (requestError) { setError(getErrorMessage(requestError, 'Không thể xuất dữ liệu.')) }
+    finally { setIsExporting(false) }
+  }
 
   return <main className="dashboard-shell">
-    <header className="dashboard-topbar"><div className="dashboard-brand"><span className="brand-mark"><BriefcaseBusiness size={18} /></span><span>JobTrack</span></div><div className="dashboard-user"><span className="avatar">{(user.fullName || user.email)[0].toUpperCase()}</span><div><b>{user.fullName || 'Người dùng'}</b><small>{user.email}</small></div><button className="icon-button topbar-logout" type="button" onClick={() => { logout(); navigate('/login', { replace: true }) }} aria-label="Đăng xuất"><LogOut size={18} /></button></div></header>
+    <header className="dashboard-topbar"><div className="dashboard-brand"><span className="brand-mark"><BriefcaseBusiness size={18} /></span><span>JobTrack</span></div><div className="dashboard-user"><span className="avatar">{(user.fullName || user.email)[0].toUpperCase()}</span><div><b>{user.fullName || 'Người dùng'}</b><small>{user.email}</small></div><button className="icon-button" type="button" onClick={() => navigate('/settings')} aria-label="Cài đặt tài khoản"><SettingsIcon size={18} /></button><button className="icon-button topbar-logout" type="button" onClick={() => { logout(); navigate('/login', { replace: true }) }} aria-label="Đăng xuất"><LogOut size={18} /></button></div></header>
     <section className="dashboard-content">
       <div className="dashboard-heading"><div><p className="eyebrow">APPLICATION WORKSPACE</p><h1>Đơn ứng tuyển</h1><p>Giữ mọi cơ hội trong tầm mắt, từng bước một.</p></div><button className="primary-button add-button" type="button" onClick={() => setEditing(null)}><Plus size={18} /> Thêm đơn mới</button></div>
       <div className="stats-row"><div className="total-stat"><span className="stat-icon"><ClipboardList size={20} /></span><div><small>Tổng số đơn</small><strong>{Object.values(stats).reduce((sum, value) => sum + value, 0)}</strong></div></div>{statItems.map((item) => <div className={`status-stat ${item.className}`} key={item.value}><small>{item.label}</small><strong>{stats[item.value]}</strong></div>)}</div>
-      <div className="list-toolbar"><div className="search-box"><Search size={18} /><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Tìm theo công ty hoặc vị trí..." aria-label="Tìm kiếm đơn ứng tuyển" /></div><div className="filter-select"><SlidersHorizontal size={16} /><select value={status} onChange={(event) => { setStatus(event.target.value as ApplicationStatus | ''); setPage(0) }} aria-label="Lọc theo trạng thái">{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div><div className="view-toggle" role="group" aria-label="Chế độ hiển thị"><button className={view === 'table' ? 'active' : ''} type="button" onClick={() => { setView('table'); setPage(0) }}><Table2 size={16} /> Bảng</button><button className={view === 'board' ? 'active' : ''} type="button" onClick={() => { setView('board'); setPage(0) }}><KanbanSquare size={16} /> Kanban</button></div><button className="refresh-button" type="button" onClick={refresh} aria-label="Tải lại danh sách"><RefreshCw size={17} /></button></div>
+      <div className="list-toolbar"><div className="search-box"><Search size={18} /><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Tìm theo công ty hoặc vị trí..." aria-label="Tìm kiếm đơn ứng tuyển" /></div><div className="filter-select"><SlidersHorizontal size={16} /><select value={status} onChange={(event) => { setStatus(event.target.value as ApplicationStatus | ''); setPage(0) }} aria-label="Lọc theo trạng thái">{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div><div className="view-toggle" role="group" aria-label="Chế độ hiển thị"><button className={view === 'table' ? 'active' : ''} type="button" onClick={() => { setView('table'); setPage(0) }}><Table2 size={16} /> Bảng</button><button className={view === 'board' ? 'active' : ''} type="button" onClick={() => { setView('board'); setPage(0) }}><KanbanSquare size={16} /> Kanban</button></div><div className="export-actions"><button type="button" onClick={() => void handleExport('csv')} disabled={isExporting}><Download size={15} /> CSV</button><button type="button" onClick={() => void handleExport('xlsx')} disabled={isExporting}><FileSpreadsheet size={15} /> Excel</button></div><button className="refresh-button" type="button" onClick={refresh} aria-label="Tải lại danh sách"><RefreshCw size={17} /></button></div>
       {notice && <div className="dashboard-notice" role="status">{notice}<button type="button" onClick={() => setNotice('')} aria-label="Đóng thông báo">×</button></div>}
       {error && <div className="dashboard-error" role="alert"><AlertCircle size={18} />{error}</div>}
+      <div className="analytics-toolbar"><span>Analytics overview</span><button type="button" onClick={() => setAnalyticsVisible((visible) => !visible)}>{analyticsVisible ? 'Ẩn biểu đồ' : 'Hiện biểu đồ'}</button></div>
+      {analyticsVisible && <AnalyticsOverview applications={applications} />}
       {view === 'board' && !isLoading && <KanbanBoard applications={applications} onEdit={setEditing} onStatusChange={handleBoardStatus} onDelete={handleDelete} />}
       {view === 'table' && <section className="application-list" aria-live="polite">
         <div className="list-header"><span>Công ty & vị trí</span><span>Trạng thái</span><span>Ngày ứng tuyển</span><span aria-hidden="true"></span></div>
