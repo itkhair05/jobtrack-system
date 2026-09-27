@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, BriefcaseBusiness, ChevronLeft, ChevronRight, ClipboardList, Download, Edit3, FileSpreadsheet, FileText, KanbanSquare, LoaderCircle, LogOut, MoreHorizontal, Plus, RefreshCw, Search, Settings as SettingsIcon, SlidersHorizontal, Table2, Trash2 } from 'lucide-react'
+import { BriefcaseBusiness, ChevronLeft, ChevronRight, ClipboardList, Download, Edit3, FileSpreadsheet, FileText, KanbanSquare, LogOut, MoreHorizontal, Plus, RefreshCw, Search, Settings as SettingsIcon, SlidersHorizontal, Table2, Trash2 } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import ApplicationModal from '../components/ApplicationModal'
@@ -11,6 +11,8 @@ import { getErrorMessage } from '../utils/errorMessage'
 import AnalyticsOverview from '../components/AnalyticsOverview'
 import { exportApplications } from '../services/exportService'
 import ReminderCenter from '../components/ReminderCenter'
+import Toast from '../components/Toast'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const statuses: Array<{ value: ApplicationStatus | ''; label: string }> = [
   { value: '', label: 'Tất cả trạng thái' }, { value: 'SAVED', label: 'Đã lưu' }, { value: 'APPLIED', label: 'Đã ứng tuyển' },
@@ -43,6 +45,7 @@ export default function Dashboard() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [editing, setEditing] = useState<Application | null | undefined>(undefined)
   const [changingStatus, setChangingStatus] = useState<Application | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Application | null>(null)
 
   useEffect(() => {
     const timer = window.setTimeout(() => { setSearch(searchInput.trim()); setPage(0) }, 280)
@@ -82,8 +85,7 @@ export default function Dashboard() {
     refresh()
   }
   const handleDelete = async (application: Application) => {
-    if (!window.confirm(`Xóa đơn ứng tuyển tại ${application.companyName}?`)) return
-    try { await deleteApplication(application.id); setNotice('Đã xóa đơn ứng tuyển.'); if (applications.length === 1 && page > 0) setPage(page - 1); else refresh() }
+    try { await deleteApplication(application.id); setConfirmDelete(null); setNotice('Đã xóa đơn ứng tuyển.'); if (applications.length === 1 && page > 0) setPage(page - 1); else refresh() }
     catch (requestError) { setError(getErrorMessage(requestError, 'Không thể xóa đơn ứng tuyển.')) }
   }
   const handleStatus = async (nextStatus: ApplicationStatus, note: string) => {
@@ -108,19 +110,24 @@ export default function Dashboard() {
       <div className="dashboard-heading"><div><p className="eyebrow">APPLICATION WORKSPACE</p><h1>Đơn ứng tuyển</h1><p>Giữ mọi cơ hội trong tầm mắt, từng bước một.</p></div><button className="primary-button add-button" type="button" onClick={() => setEditing(null)}><Plus size={18} /> Thêm đơn mới</button></div>
       <div className="stats-row"><div className="total-stat"><span className="stat-icon"><ClipboardList size={20} /></span><div><small>Tổng số đơn</small><strong>{Object.values(stats).reduce((sum, value) => sum + value, 0)}</strong></div></div>{statItems.map((item) => <div className={`status-stat ${item.className}`} key={item.value}><small>{item.label}</small><strong>{stats[item.value]}</strong></div>)}</div>
       <div className="list-toolbar"><div className="search-box"><Search size={18} /><input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Tìm theo công ty hoặc vị trí..." aria-label="Tìm kiếm đơn ứng tuyển" /></div><div className="filter-select"><SlidersHorizontal size={16} /><select value={status} onChange={(event) => { setStatus(event.target.value as ApplicationStatus | ''); setPage(0) }} aria-label="Lọc theo trạng thái">{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div><div className="view-toggle" role="group" aria-label="Chế độ hiển thị"><button className={view === 'table' ? 'active' : ''} type="button" onClick={() => { setView('table'); setPage(0) }}><Table2 size={16} /> Bảng</button><button className={view === 'board' ? 'active' : ''} type="button" onClick={() => { setView('board'); setPage(0) }}><KanbanSquare size={16} /> Kanban</button></div><div className="export-actions"><button type="button" onClick={() => void handleExport('csv')} disabled={isExporting}><Download size={15} /> CSV</button><button type="button" onClick={() => void handleExport('xlsx')} disabled={isExporting}><FileSpreadsheet size={15} /> Excel</button></div><button className="refresh-button" type="button" onClick={refresh} aria-label="Tải lại danh sách"><RefreshCw size={17} /></button></div>
-      {notice && <div className="dashboard-notice" role="status">{notice}<button type="button" onClick={() => setNotice('')} aria-label="Đóng thông báo">×</button></div>}
-      {error && <div className="dashboard-error" role="alert"><AlertCircle size={18} />{error}</div>}
+      {notice && <Toast message={notice} onClose={() => setNotice('')} />}
+      {error && <Toast message={error} type="error" onClose={() => setError('')} />}
       <div className="analytics-toolbar"><span>Analytics overview</span><button type="button" onClick={() => setAnalyticsVisible((visible) => !visible)}>{analyticsVisible ? 'Ẩn biểu đồ' : 'Hiện biểu đồ'}</button></div>
       {analyticsVisible && <AnalyticsOverview analytics={analytics} applications={applications} />}
       <ReminderCenter applications={followUps} onOpen={(application) => navigate(`/applications/${application.id}`)} />
       {view === 'board' && !isLoading && <KanbanBoard applications={applications} onEdit={setEditing} onStatusChange={handleBoardStatus} onDelete={handleDelete} />}
       {view === 'table' && <section className="application-list" aria-live="polite">
         <div className="list-header"><span>Công ty & vị trí</span><span>Trạng thái</span><span>Ngày ứng tuyển</span><span aria-hidden="true"></span></div>
-        {isLoading ? <div className="loading-state"><LoaderCircle className="spin" size={24} /><span>Đang tải danh sách...</span></div> : applications.length === 0 ? <div className="empty-state"><ClipboardList size={34} /><h3>Chưa có đơn ứng tuyển</h3><p>Thêm cơ hội đầu tiên để bắt đầu theo dõi hành trình của bạn.</p><button className="primary-button" type="button" onClick={() => setEditing(null)}><Plus size={17} /> Thêm đơn mới</button></div> : applications.map((application) => <article className="application-row" key={application.id} onClick={() => navigate(`/applications/${application.id}`)}><div className="company-cell"><span className="company-logo">{application.companyName[0].toUpperCase()}</span><div><strong>{application.companyName}</strong><span>{application.jobTitle}</span>{application.location && <small>{application.location}</small>}</div></div><div><StatusBadge status={application.status} /></div><div className="date-cell">{application.followUpDate ? `Follow-up ${new Date(`${application.followUpDate}T00:00:00`).toLocaleDateString('vi-VN')}` : application.appliedDate ? new Date(application.appliedDate).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}</div><div className="row-actions"><button className="icon-button" type="button" onClick={(event) => { event.stopPropagation(); setEditing(application) }} aria-label={`Sửa ${application.jobTitle}`}><Edit3 size={17} /></button><button className="icon-button" type="button" onClick={(event) => { event.stopPropagation(); setChangingStatus(application) }} aria-label={`Đổi trạng thái ${application.jobTitle}`}><MoreHorizontal size={18} /></button><button className="icon-button danger-icon" type="button" onClick={(event) => { event.stopPropagation(); void handleDelete(application) }} aria-label={`Xóa ${application.jobTitle}`}><Trash2 size={17} /></button></div></article>)}
+        {isLoading ? <SkeletonRows /> : applications.length === 0 ? <div className="empty-state"><ClipboardList size={34} /><h3>Chưa có đơn ứng tuyển</h3><p>Thêm cơ hội đầu tiên để bắt đầu theo dõi hành trình của bạn.</p><button className="primary-button" type="button" onClick={() => setEditing(null)}><Plus size={17} /> Thêm đơn mới</button></div> : applications.map((application) => <article className="application-row" key={application.id} onClick={() => navigate(`/applications/${application.id}`)}><div className="company-cell"><span className="company-logo">{application.companyName[0].toUpperCase()}</span><div><strong>{application.companyName}</strong><span>{application.jobTitle}</span>{application.location && <small>{application.location}</small>}</div></div><div><StatusBadge status={application.status} /></div><div className="date-cell">{application.followUpDate ? `Follow-up ${new Date(`${application.followUpDate}T00:00:00`).toLocaleDateString('vi-VN')}` : application.appliedDate ? new Date(application.appliedDate).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}</div><div className="row-actions"><button className="icon-button" type="button" onClick={(event) => { event.stopPropagation(); setEditing(application) }} aria-label={`Sửa ${application.jobTitle}`}><Edit3 size={17} /></button><button className="icon-button" type="button" onClick={(event) => { event.stopPropagation(); setChangingStatus(application) }} aria-label={`Đổi trạng thái ${application.jobTitle}`}><MoreHorizontal size={18} /></button><button className="icon-button danger-icon" type="button" onClick={(event) => { event.stopPropagation(); setConfirmDelete(application) }} aria-label={`Xóa ${application.jobTitle}`}><Trash2 size={17} /></button></div></article>)}
       </section>}
       {view === 'table' && totalPages > 0 && <footer className="pagination"><span>Hiển thị {applications.length ? page * 8 + 1 : 0}-{Math.min(page * 8 + applications.length, total)} trên {total} đơn</span><div><button className="page-button" type="button" disabled={page === 0} onClick={() => setPage((current) => current - 1)} aria-label="Trang trước"><ChevronLeft size={17} /></button><span className="page-number">{page + 1} / {totalPages}</span><button className="page-button" type="button" disabled={page >= totalPages - 1} onClick={() => setPage((current) => current + 1)} aria-label="Trang sau"><ChevronRight size={17} /></button></div></footer>}
     </section>
     {editing !== undefined && <ApplicationModal application={editing} onClose={() => setEditing(undefined)} onSubmit={handleSaved} />}
     {changingStatus && <StatusChangeModal application={changingStatus} onClose={() => setChangingStatus(null)} onSubmit={handleStatus} />}
+    {confirmDelete && <ConfirmDialog title="Xóa đơn ứng tuyển?" message={`Đơn tại ${confirmDelete.companyName} sẽ bị xóa vĩnh viễn.`} onCancel={() => setConfirmDelete(null)} onConfirm={() => void handleDelete(confirmDelete)} />}
   </main>
+}
+
+function SkeletonRows() {
+  return <div className="skeleton-list" aria-label="Đang tải danh sách">{[1, 2, 3].map((item) => <div className="skeleton-row" key={item}><span /><div><b /><i /></div><em /><aside /></div>)}</div>
 }
