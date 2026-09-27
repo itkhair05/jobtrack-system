@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.time.LocalDate;
+import java.util.List;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
 
@@ -30,4 +32,27 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             Pageable pageable);
 
     java.util.Optional<Application> findByIdAndUser_Id(Long id, Long userId);
+
+                @Query("""
+                                                select a from Application a
+                                                join fetch a.company
+                                                where a.user.id = :userId
+                                                        and a.followUpDate is not null
+                                                        and a.followUpDate <= :until
+                                                order by a.followUpDate asc
+                                                """)
+                List<Application> findFollowUps(@Param("userId") Long userId, @Param("until") LocalDate until);
+
+                long countByUser_Id(Long userId);
+
+                long countByUser_IdAndStatus(Long userId, ApplicationStatus status);
+
+                @Query(value = """
+                                select year(applied_date) as year_value, month(applied_date) as month_value, count(*) as count_value
+                                from applications
+                                where user_id = :userId and applied_date is not null
+                                group by year(applied_date), month(applied_date)
+                                order by year(applied_date), month(applied_date)
+                                """, nativeQuery = true)
+                List<Object[]> countByMonth(@Param("userId") Long userId);
 }

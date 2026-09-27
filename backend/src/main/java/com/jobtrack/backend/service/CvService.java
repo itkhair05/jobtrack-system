@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.apache.tika.Tika;
 
 @Service
 public class CvService {
@@ -32,6 +33,7 @@ public class CvService {
     private final CvRepository cvRepository;
     private final UserRepository userRepository;
     private final Path uploadDirectory;
+    private final Tika tika = new Tika();
 
     public CvService(
             CvRepository cvRepository,
@@ -55,6 +57,14 @@ public class CvService {
         String extension = extensionOf(originalName);
         if (!extension.equals("pdf") && !extension.equals("docx")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only PDF and DOCX files are supported");
+        }
+        try {
+            String detectedType = tika.detect(file.getInputStream(), originalName);
+            if (!detectedType.equals(PDF) && !detectedType.equals(DOCX)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CV content does not match PDF or DOCX");
+            }
+        } catch (IOException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not inspect CV content", exception);
         }
         if (file.getContentType() != null && !file.getContentType().equals(PDF) && !file.getContentType().equals(DOCX)
                 && !file.getContentType().equals("application/octet-stream")) {

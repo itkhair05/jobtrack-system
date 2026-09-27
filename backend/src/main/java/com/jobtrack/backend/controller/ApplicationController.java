@@ -55,6 +55,13 @@ public class ApplicationController {
         return applicationService.findDetail(email, id);
     }
 
+    @GetMapping("/follow-ups")
+    public java.util.List<ApplicationResponse> getFollowUps(
+            @AuthenticationPrincipal String email,
+            @RequestParam(defaultValue = "7") int days) {
+        return applicationService.findFollowUps(email, days);
+    }
+
     @PostMapping
     public ResponseEntity<ApplicationResponse> createApplication(
             @AuthenticationPrincipal String email,

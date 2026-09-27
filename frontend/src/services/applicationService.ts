@@ -69,6 +69,12 @@ export interface ApplicationDetail {
   timeline: StatusLog[]
 }
 
+export interface AnalyticsData {
+  total: number
+  byStatus: Record<ApplicationStatus, number>
+  byMonth: Array<{ year: number; month: number; count: number }>
+}
+
 export interface ApplicationFilters {
   page?: number
   size?: number
@@ -83,6 +89,16 @@ export async function getApplications(filters: ApplicationFilters = {}) {
 
 export async function getApplication(id: number) {
   const { data } = await api.get<ApplicationDetail>(`/applications/${id}`)
+  return data
+}
+
+export async function getFollowUps(days = 7) {
+  const { data } = await api.get<Application[]>('/applications/follow-ups', { params: { days } })
+  return data
+}
+
+export async function getAnalytics() {
+  const { data } = await api.get<AnalyticsData>('/applications/analytics')
   return data
 }
 

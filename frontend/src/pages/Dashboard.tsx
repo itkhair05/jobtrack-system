@@ -6,10 +6,11 @@ import ApplicationModal from '../components/ApplicationModal'
 import StatusBadge from '../components/StatusBadge'
 import StatusChangeModal from '../components/StatusChangeModal'
 import KanbanBoard from '../components/KanbanBoard'
-import { createApplication, deleteApplication, getApplications, updateApplication, updateStatus, type Application, type ApplicationRequest, type ApplicationStatus } from '../services/applicationService'
+import { createApplication, deleteApplication, getAnalytics, getApplications, getFollowUps, updateApplication, updateStatus, type AnalyticsData, type Application, type ApplicationRequest, type ApplicationStatus } from '../services/applicationService'
 import { getErrorMessage } from '../utils/errorMessage'
 import AnalyticsOverview from '../components/AnalyticsOverview'
 import { exportApplications } from '../services/exportService'
+import ReminderCenter from '../components/ReminderCenter'
 
 const statuses: Array<{ value: ApplicationStatus | ''; label: string }> = [
   { value: '', label: 'Tất cả trạng thái' }, { value: 'SAVED', label: 'Đã lưu' }, { value: 'APPLIED', label: 'Đã ứng tuyển' },
@@ -38,6 +39,8 @@ export default function Dashboard() {
   const [view, setView] = useState<'table' | 'board'>('table')
   const [analyticsVisible, setAnalyticsVisible] = useState(true)
   const [isExporting, setIsExporting] = useState(false)
+  const [followUps, setFollowUps] = useState<Application[]>([])
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [editing, setEditing] = useState<Application | null | undefined>(undefined)
   const [changingStatus, setChangingStatus] = useState<Application | null>(null)
 
@@ -52,13 +55,16 @@ export default function Dashboard() {
     const load = async () => {
       setIsLoading(true); setError('')
       try {
-        const [result, ...summary] = await Promise.all([
+        const [result, analyticsResult, reminders] = await Promise.all([
           getApplications({ page, size: view === 'board' ? 100 : 8, status, search }),
-          ...statItems.map((item) => getApplications({ page: 0, size: 1, status: item.value })),
+          getAnalytics(),
+          getFollowUps(7),
         ])
         if (!active) return
         setApplications(result.content); setTotal(result.totalElements); setTotalPages(result.totalPages)
-        setStats({ SAVED: summary[0].totalElements, APPLIED: summary[1].totalElements, INTERVIEWING: summary[2].totalElements, OFFERED: summary[3].totalElements, REJECTED: summary[4].totalElements })
+        setStats(analyticsResult.byStatus)
+        setAnalytics(analyticsResult)
+        setFollowUps(reminders)
       } catch (requestError) { if (active) setError(getErrorMessage(requestError, 'Không thể tải danh sách ứng tuyển.')) }
       finally { if (active) setIsLoading(false) }
     }
@@ -105,7 +111,8 @@ export default function Dashboard() {
       {notice && <div className="dashboard-notice" role="status">{notice}<button type="button" onClick={() => setNotice('')} aria-label="Đóng thông báo">×</button></div>}
       {error && <div className="dashboard-error" role="alert"><AlertCircle size={18} />{error}</div>}
       <div className="analytics-toolbar"><span>Analytics overview</span><button type="button" onClick={() => setAnalyticsVisible((visible) => !visible)}>{analyticsVisible ? 'Ẩn biểu đồ' : 'Hiện biểu đồ'}</button></div>
-      {analyticsVisible && <AnalyticsOverview applications={applications} />}
+      {analyticsVisible && <AnalyticsOverview analytics={analytics} applications={applications} />}
+      <ReminderCenter applications={followUps} onOpen={(application) => navigate(`/applications/${application.id}`)} />
       {view === 'board' && !isLoading && <KanbanBoard applications={applications} onEdit={setEditing} onStatusChange={handleBoardStatus} onDelete={handleDelete} />}
       {view === 'table' && <section className="application-list" aria-live="polite">
         <div className="list-header"><span>Công ty & vị trí</span><span>Trạng thái</span><span>Ngày ứng tuyển</span><span aria-hidden="true"></span></div>

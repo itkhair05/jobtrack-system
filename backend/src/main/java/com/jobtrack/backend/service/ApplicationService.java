@@ -17,6 +17,8 @@ import com.jobtrack.backend.repository.CompanyRepository;
 import com.jobtrack.backend.repository.CvRepository;
 import com.jobtrack.backend.repository.UserRepository;
 import java.util.Locale;
+import java.time.LocalDate;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -56,6 +58,15 @@ public class ApplicationService {
         String normalizedSearch = search == null ? null : search.trim();
         return applicationRepository.searchByUser(user.getId(), status, normalizedSearch, pageable)
                 .map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationResponse> findFollowUps(String email, int days) {
+        User user = findUser(email);
+        LocalDate until = LocalDate.now().plusDays(Math.min(Math.max(days, 0), 30));
+        return applicationRepository.findFollowUps(user.getId(), until).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional
