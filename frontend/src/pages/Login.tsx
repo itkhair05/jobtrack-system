@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AlertCircle, ArrowRight, BriefcaseBusiness, LoaderCircle, LockKeyhole, Mail } from 'lucide-react'
 import { z } from 'zod'
 import { useAuth } from '../context/AuthContext'
@@ -15,13 +15,17 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>
 
 export default function Login() {
-  const { login } = useAuth()
+  const { user, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [serverError, setServerError] = useState('')
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   })
+
+  if (user) {
+    return <Navigate to="/" replace />
+  }
 
   const onSubmit = async (values: LoginForm) => {
     setServerError('')

@@ -48,7 +48,7 @@ public class ApplicationController {
         return applicationService.findAll(email, status, search, pageable);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ApplicationDetailResponse getApplication(
             @AuthenticationPrincipal String email,
             @PathVariable Long id) {
@@ -70,7 +70,7 @@ public class ApplicationController {
         return ResponseEntity.created(URI.create("/api/v1/applications/" + response.id())).body(response);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     public ApplicationResponse updateApplication(
             @AuthenticationPrincipal String email,
             @PathVariable Long id,
@@ -78,7 +78,7 @@ public class ApplicationController {
         return applicationService.update(email, id, request);
     }
 
-    @PatchMapping("/{id}/status")
+    @PatchMapping("/{id:\\d+}/status")
     public ApplicationResponse updateStatus(
             @AuthenticationPrincipal String email,
             @PathVariable Long id,
@@ -86,7 +86,7 @@ public class ApplicationController {
         return applicationService.updateStatus(email, id, request);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public ResponseEntity<Void> deleteApplication(
             @AuthenticationPrincipal String email,
             @PathVariable Long id) {

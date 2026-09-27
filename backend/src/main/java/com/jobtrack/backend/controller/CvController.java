@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,7 +37,7 @@ public class CvController {
         return ResponseEntity.created(URI.create(response.downloadUrl())).body(response);
     }
 
-    @GetMapping("/{id}/download")
+    @GetMapping("/{id:\\d+}/download")
     public ResponseEntity<Resource> download(
             @AuthenticationPrincipal String email,
             @PathVariable Long id) {
@@ -46,5 +47,16 @@ public class CvController {
                 .contentType(MediaType.parseMediaType(downloaded.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(downloaded.resource());
+    }
+
+    @GetMapping
+    public java.util.List<CvResponse> list(@AuthenticationPrincipal String email) {
+        return cvService.list(email);
+    }
+
+    @DeleteMapping("/{id:\\d+}")
+    public ResponseEntity<Void> delete(@AuthenticationPrincipal String email, @PathVariable Long id) {
+        cvService.delete(email, id);
+        return ResponseEntity.noContent().build();
     }
 }

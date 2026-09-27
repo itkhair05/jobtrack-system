@@ -2,8 +2,11 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import MainLayout from './layouts/MainLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Applications = lazy(() => import('./pages/Applications'))
+const Analytics = lazy(() => import('./pages/Analytics'))
 const Login = lazy(() => import('./pages/Login'))
 const Register = lazy(() => import('./pages/Register'))
 const Settings = lazy(() => import('./pages/Settings'))
@@ -17,13 +20,15 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/applications" element={<Dashboard />} />
-            <Route path="/analytics" element={<Dashboard />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/applications/:id" element={<ApplicationDetail />} />
-            <Route path="/cvs" element={<Cvs />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<MainLayout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/applications" element={<Applications />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/applications/:id" element={<ApplicationDetail />} />
+              <Route path="/cvs" element={<Cvs />} />
+            </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

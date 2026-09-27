@@ -3,6 +3,7 @@ package com.jobtrack.backend.service;
 import com.jobtrack.backend.dto.CvResponse;
 import com.jobtrack.backend.entity.Cv;
 import com.jobtrack.backend.entity.User;
+import com.jobtrack.backend.repository.ApplicationRepository;
 import com.jobtrack.backend.repository.CvRepository;
 import com.jobtrack.backend.repository.UserRepository;
 import java.io.IOException;
@@ -12,6 +13,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -32,15 +34,18 @@ public class CvService {
 
     private final CvRepository cvRepository;
     private final UserRepository userRepository;
+    private final ApplicationRepository applicationRepository;
     private final Path uploadDirectory;
     private final Tika tika = new Tika();
 
     public CvService(
             CvRepository cvRepository,
             UserRepository userRepository,
+            ApplicationRepository applicationRepository,
             @Value("${app.upload.directory:uploads/cvs}") String uploadDirectory) {
         this.cvRepository = cvRepository;
         this.userRepository = userRepository;
+        this.applicationRepository = applicationRepository;
         this.uploadDirectory = Paths.get(uploadDirectory).toAbsolutePath().normalize();
     }
 
@@ -71,8 +76,7 @@ public class CvService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid CV content type");
         }
 
-        User user = userRepository.findByEmail(email.toLowerCase(Locale.ROOT))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User account not found"));
+        User user = findUser(email);
         String safeName = originalName.replaceAll("[^a-zA-Z0-9._-]", "_");
         String storedName = UUID.randomUUID() + "_" + safeName;
         Path destination = uploadDirectory.resolve(storedName).normalize();
@@ -102,12 +106,14 @@ public class CvService {
 
     @Transactional(readOnly = true)
     public DownloadedCv download(String email, Long id) {
-        User user = userRepository.findByEmail(email.toLowerCase(Locale.ROOT))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User account not found"));
+        User user = findUser(email);
         Cv cv = cvRepository.findByIdAndUser_Id(id, user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "CV not found"));
         try {
             Path path = Paths.get(cv.getFilePath()).toAbsolutePath().normalize();
+            if (!path.startsWith(uploadDirectory)) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "CV file not found");
+            }
             Resource resource = new UrlResource(path.toUri());
             if (!resource.exists() || !resource.isReadable()) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "CV file not found");
@@ -116,6 +122,33 @@ public class CvService {
         } catch (IOException exception) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "CV file not found", exception);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public List<CvResponse> list(String email) {
+        User user = findUser(email);
+        return cvRepository.findAllByUser_IdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public void delete(String email, Long id) {
+        User user = findUser(email);
+        Cv cv = cvRepository.findByIdAndUser_Id(id, user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "CV not found"));
+        Path path = Paths.get(cv.getFilePath()).toAbsolutePath().normalize();
+        applicationRepository.detachCvFromApplications(cv.getId());
+        cvRepository.delete(cv);
+        cvRepository.flush();
+        if (path.startsWith(uploadDirectory)) {
+            deleteQuietly(path);
+        }
+    }
+
+    private User findUser(String email) {
+        return userRepository.findByEmail(email.toLowerCase(Locale.ROOT))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User account not found"));
     }
 
     private CvResponse toResponse(Cv cv) {

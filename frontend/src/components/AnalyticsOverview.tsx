@@ -5,7 +5,7 @@ import type { AnalyticsData, Application, ApplicationStatus } from '../services/
 const colors: Record<ApplicationStatus, string> = { SAVED: '#91a0b6', APPLIED: '#3774d8', INTERVIEWING: '#d69724', OFFERED: '#2e9b68', REJECTED: '#d56767' }
 const labels: Record<ApplicationStatus, string> = { SAVED: 'Đã lưu', APPLIED: 'Đã ứng tuyển', INTERVIEWING: 'Phỏng vấn', OFFERED: 'Offer', REJECTED: 'Từ chối' }
 
-export default function AnalyticsOverview({ analytics, applications }: { analytics: AnalyticsData | null; applications: Application[] }) {
+export default function AnalyticsOverview({ analytics, applications = [] }: { analytics: AnalyticsData | null; applications?: Application[] }) {
   const statusData = (Object.keys(colors) as ApplicationStatus[]).map((status) => ({ name: labels[status], value: analytics?.byStatus[status] ?? 0, status })).filter((item) => item.value > 0)
   const monthData = analytics ? analytics.byMonth.slice(-6).map((item) => ({ month: `${item.month}/${String(item.year).slice(-2)}`, count: item.count })) : getMonthData(applications)
   const total = statusData.reduce((sum, item) => sum + item.value, 0)

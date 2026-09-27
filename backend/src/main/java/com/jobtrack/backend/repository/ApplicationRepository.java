@@ -55,4 +55,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
                                 order by year(applied_date), month(applied_date)
                                 """, nativeQuery = true)
                 List<Object[]> countByMonth(@Param("userId") Long userId);
+
+                @org.springframework.data.jpa.repository.Modifying
+                @Query("update Application a set a.cv = null where a.cv.id = :cvId")
+                void detachCvFromApplications(@Param("cvId") Long cvId);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, BriefcaseBusiness, CalendarDays, Clock3, Download, Eye, FileText, LoaderCircle, MapPin, RefreshCw } from 'lucide-react'
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import StatusBadge from '../components/StatusBadge'
 import StatusChangeModal from '../components/StatusChangeModal'
@@ -31,9 +31,8 @@ export default function ApplicationDetail() {
     }
     void load()
     return () => { active = false }
-  }, [id, user])
+  }, [id])
 
-  if (!user) return <Navigate to="/login" replace />
   if (isLoading) return <main className="detail-loading"><LoaderCircle className="spin" size={26} /> Đang tải chi tiết...</main>
   if (error || !detail) return <main className="detail-loading"><p>{error || 'Không tìm thấy đơn ứng tuyển.'}</p><button className="secondary-button" type="button" onClick={() => navigate('/')}>Về Dashboard</button></main>
 
@@ -49,8 +48,15 @@ export default function ApplicationDetail() {
   }
 
   return <main className="detail-shell">
-    <header className="detail-topbar"><button className="back-button" type="button" onClick={() => navigate('/')}><ArrowLeft size={18} /> Dashboard</button><span className="dashboard-brand"><span className="brand-mark"><BriefcaseBusiness size={18} /></span> JobTrack</span><button className="icon-button" type="button" onClick={() => void reload()} aria-label="Tải lại"><RefreshCw size={17} /></button></header>
     <section className="detail-content">
+      <div className="subpage-nav-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <button className="back-button" type="button" onClick={() => navigate(-1)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <ArrowLeft size={18} /> Quay lại
+        </button>
+        <button className="icon-button" type="button" onClick={() => void reload()} aria-label="Tải lại đơn ứng tuyển">
+          <RefreshCw size={17} />
+        </button>
+      </div>
       <div className="detail-heading"><div><p className="eyebrow">APPLICATION DETAIL</p><h1>{application.jobTitle}</h1><p className="detail-company"><BriefcaseBusiness size={16} /> {application.companyName}{application.location && <><span>·</span><MapPin size={15} /> {application.location}</>}</p></div><div className="detail-actions"><button className="secondary-button" type="button" onClick={() => setChangingStatus(application)}><Clock3 size={16} /> Đổi trạng thái</button><StatusBadge status={application.status} /></div></div>
       <div className="detail-grid">
         <section className="detail-main">
