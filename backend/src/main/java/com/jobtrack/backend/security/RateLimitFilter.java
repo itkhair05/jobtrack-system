@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -17,6 +18,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final long WINDOW_MILLIS = 60_000;
     private final Map<String, Counter> counters = new ConcurrentHashMap<>();
+    private final AtomicLong lastCleanup = new AtomicLong(System.currentTimeMillis());
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -28,9 +30,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
 
+        long now = System.currentTimeMillis();
+        cleanupExpired(now);
         String key = request.getRemoteAddr() + ":" + path;
         Counter counter = counters.compute(key, (ignored, current) -> {
-            long now = System.currentTimeMillis();
             if (current == null || now - current.startedAt > WINDOW_MILLIS) return new Counter(now, 1);
             return new Counter(current.startedAt, current.count + 1);
         });
@@ -41,6 +44,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return;
         }
         chain.doFilter(request, response);
+    }
+
+    private void cleanupExpired(long now) {
+        long previousCleanup = lastCleanup.get();
+        if (now - previousCleanup < WINDOW_MILLIS || !lastCleanup.compareAndSet(previousCleanup, now)) return;
+        counters.entrySet().removeIf(entry -> now - entry.getValue().startedAt > WINDOW_MILLIS);
     }
 
     private record Counter(long startedAt, int count) { }
