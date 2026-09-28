@@ -46,6 +46,7 @@ public class CvController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(downloaded.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header("X-Content-Type-Options", "nosniff")
                 .body(downloaded.resource());
     }
 
