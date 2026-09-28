@@ -38,10 +38,15 @@ public class UserService {
         if (!email.equals(user.getEmail()) && userRepository.findByEmail(email).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email is already registered");
         }
+        boolean changingEmail = !email.equals(user.getEmail());
         boolean changingPassword = request.newPassword() != null && !request.newPassword().isBlank();
-        if (changingPassword && (request.currentPassword() == null
-                || !passwordEncoder.matches(request.currentPassword(), user.getPasswordHash()))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
+        if (changingEmail || changingPassword) {
+            if (request.currentPassword() == null || request.currentPassword().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is required");
+            }
+            if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
+            }
         }
 
         user.setEmail(email);
