@@ -84,7 +84,11 @@ public class ApplicationService {
     public ApplicationResponse update(String email, Long id, ApplicationRequest request) {
         User user = findUser(email);
         Application application = findApplication(id, user.getId());
+        ApplicationStatus previousStatus = application.getStatus();
         applyRequest(application, user, request);
+        if (request.status() != null && previousStatus != request.status()) {
+            saveStatusLog(application, previousStatus.name(), request.status().name(), "Cập nhật từ trang chỉnh sửa đơn");
+        }
         return toResponse(application);
     }
 
@@ -140,7 +144,7 @@ public class ApplicationService {
         application.setJobTitle(request.jobTitle().trim());
         application.setJobUrl(trimToNull(request.jobUrl()));
         application.setSalaryRange(trimToNull(request.salaryRange()));
-        application.setStatus(request.status() == null ? ApplicationStatus.SAVED : request.status());
+        application.setStatus(request.status() == null ? application.getStatus() : request.status());
         application.setAppliedDate(request.appliedDate());
         application.setFollowUpDate(request.followUpDate());
         application.setNotes(trimToNull(request.notes()));
