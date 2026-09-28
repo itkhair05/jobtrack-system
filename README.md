@@ -185,4 +185,4 @@ npm run lint
 
 ## Tác giả
 
-Được xây dựng bởi [itkhair05](https://github.com/itkhair05).
+Được xây dựng bởi [Dương Thế Khải](https://github.com/itkhair05).
