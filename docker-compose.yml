@@ -12,6 +12,12 @@ services:
       - "3306:3306"
     volumes:
       - jobtrack_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   backend:
     build:
@@ -19,7 +25,8 @@ services:
     container_name: jobtrack-backend
     restart: unless-stopped
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:mysql://mysql:3306/jobtrack_db?useSSL=false&serverTimezone=UTC
